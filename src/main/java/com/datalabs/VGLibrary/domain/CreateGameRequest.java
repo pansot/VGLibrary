@@ -1,4 +1,4 @@
-package com.datalabs.VGLibrary.controller;
+package com.datalabs.VGLibrary.domain;
 
 import lombok.Data;
 

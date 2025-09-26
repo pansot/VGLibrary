@@ -12,7 +12,6 @@ import java.util.Optional;
 
 @Repository
 public interface GameRepository extends JpaRepository<Game, Integer> {
-    List<Game> findByCompletionStatus(CompletionStatus status);
     List<Game> findByTitleContainingIgnoreCase(String title);
     List<Game> findByReleaseYear(Integer year);
     List<Game> findByDeveloper(String developer);
@@ -20,5 +19,4 @@ public interface GameRepository extends JpaRepository<Game, Integer> {
     Optional<Game> findByTitle(String title);
 
     List<Game> findByGenres_Name(String genreName);
-    List<Game> findByPlatforms_Name(String platformName);
 }
