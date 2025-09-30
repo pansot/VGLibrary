@@ -14,13 +14,8 @@ public enum CompletionStatus {
         this.displayName = displayName;
     }
 
-    @JsonValue
+//    @JsonValue  // This makes JSON responses show "Completed" instead of "COMPLETED"
     public String getDisplayName() {
-        return displayName;
-    }
-
-    @Override
-    public String toString() {
         return displayName;
     }
 }

@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import java.util.Set;
 
 @Entity
@@ -32,9 +30,8 @@ public class Game {
     @Column(name = "publisher", length = 100)
     private String publisher;
 
-    @Convert(converter = CompletionStatusConverter.class)
-    @Column(name = "completion_status", nullable = false, columnDefinition = "completion_status_enum")
-    private CompletionStatus completionStatus = CompletionStatus.NOT_STARTED;
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
 
     @ManyToMany
     @JoinTable(
@@ -44,11 +41,4 @@ public class Game {
     )
     private Set<Genre> genres;
 
-    @ManyToMany
-    @JoinTable(
-            name = "game_platforms",
-            joinColumns = @JoinColumn(name = "game_id"),
-            inverseJoinColumns = @JoinColumn(name = "platform_id")
-    )
-    private Set<Platform> platforms;
 }
