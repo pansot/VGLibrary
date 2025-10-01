@@ -12,8 +12,10 @@ import jakarta.persistence.Id;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.processing.Completion;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,30 +39,19 @@ public class UserService {
     }
 
     public List<UserGame> getUserGames(Integer userId) {
-        return userGameRepository.findAll().stream()
-                .filter(userGame -> userGame.getUserId().equals(userId))
-                .collect(Collectors.toList());
+        return userGameRepository.findByUserId(userId);
     }
 
     public List<UserGame> getUserGamesByStatus(Integer userId, CompletionStatus status) {
-        return getUserGames(userId).stream()
-                .filter(userGame -> userGame.getCompletionStatus() == status)
-                .collect(Collectors.toList());
+        return userGameRepository.findByUserIdAndCompletionStatus(userId, status);
     }
 
     public User createUser(CreateUserRequest request) {
-        List<User> existingUsers = userRepository.findAll();
-        boolean usernameExists = existingUsers.stream()
-                .anyMatch(user -> user.getUsername().equals(request.getUsername()));
-
-        if (usernameExists) {
+        if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username already exists");
         }
 
-        boolean emailExists = existingUsers.stream()
-                .anyMatch(user -> user.getEmail().equals(request.getEmail()));
-
-        if (emailExists) {
+        if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists");
         }
 
@@ -73,18 +64,15 @@ public class UserService {
     }
 
     public User loginUser(LoginRequest request) {
-        List<User> allUsers = userRepository.findAll();
+        Optional<User> optionalUser = userRepository.findByUsername(request.getUsername());
 
-        User user = allUsers.stream()
-                .filter(u -> u.getUsername().equals(request.getUsername()))
-                .findFirst()
-                .orElse(null);
-
-        if (user == null) {
+        if (optionalUser.isEmpty()) {
             throw new RuntimeException("User not found");
         }
 
-        if(!user.getPassword().equals(request.getPassword())) {
+        User user = optionalUser.get();
+
+        if (!user.getPassword().equals(request.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
 
@@ -92,11 +80,9 @@ public class UserService {
     }
 
     public UserGame addGameToLibrary(Integer userId, AddGameToLibraryRequest request) {
-        List<UserGame> existingUserGames = userGameRepository.findAll().stream()
-                .filter(userGames -> userGames.getUserId().equals(userId) && userGames.getGameId().equals(request.getGameId()))
-                .collect(Collectors.toList());
+        Optional<UserGame> existingUserGame = userGameRepository.findByUserIdAndGameId(userId, request.getGameId());
 
-        if (!existingUserGames.isEmpty()) {
+        if (existingUserGame.isPresent()) {
             throw new RuntimeException("User already owns this game");
         }
 
@@ -127,15 +113,13 @@ public class UserService {
     }
 
     public UserGame updateCompletionStatus(Integer userId, Integer gameId, UpdateCompletionStatusRequest request) {
-        List<UserGame> userGames = userGameRepository.findAll().stream()
-                .filter(userGame -> userGame.getUserId().equals(userId) && userGame.getGameId().equals(gameId))
-                .collect(Collectors.toList());
+        Optional<UserGame> optionalUserGame = userGameRepository.findByUserIdAndGameId(userId, gameId);
 
-        if (userGames.isEmpty()) {
+        if (optionalUserGame.isEmpty()) {
             throw new RuntimeException("User does not own this game");
         }
 
-        UserGame userGame = userGames.get(0);
+        UserGame userGame = optionalUserGame.get();
 
         try {
             CompletionStatus newStatus = CompletionStatus.valueOf(request.getCompletionStatus().toUpperCase());
@@ -147,38 +131,29 @@ public class UserService {
     }
 
     public void deleteGameFromCollection(Integer userId, Integer gameId) {
-        List<UserGame> userGames = userGameRepository.findAll().stream()
-                .filter(userGame -> userGame.getUserId().equals(userId) && userGame.getGameId().equals(gameId))
-                .collect(Collectors.toList());
+        Optional<UserGame> optionalUserGame = userGameRepository.findByUserIdAndGameId(userId, gameId);
 
-        if(userGames.isEmpty()) {
+        if (optionalUserGame.isEmpty()) {
             throw new RuntimeException("User does not own this game");
         }
 
-        List<UserGamePlatform> platformEntries = userGamePlatformRepository.findAll().stream()
-                .filter(userGamePlatform -> userGamePlatform.getUserId().equals(userId) && userGamePlatform.getGameId().equals(gameId))
-                .collect(Collectors.toList());
+        List<UserGamePlatform> platformEntries = userGamePlatformRepository.findByUserIdAndGameId(userId, gameId);
 
         for (UserGamePlatform entry : platformEntries) {
             userGamePlatformRepository.delete(entry);
         }
 
-        UserGame userGame = userGames.get(0);
-        userGameRepository.delete(userGame);
+        userGameRepository.delete(optionalUserGame.get());
     }
 
     public List<UserGamePlatform> updateGamePlatforms(Integer userId, Integer gameId, UpdateGamePlatformsRequest request) {
-        List<UserGame> userGames = userGameRepository.findAll().stream()
-                .filter(userGame -> userGame.getUserId().equals(userId) && userGame.getGameId().equals(gameId))
-                .collect(Collectors.toList());
+        Optional<UserGame> optionalUserGame = userGameRepository.findByUserIdAndGameId(userId, gameId);
 
-        if (userGames.isEmpty()) {
+        if (optionalUserGame.isEmpty()) {
             throw new RuntimeException("User does not own this game");
         }
 
-        List<UserGamePlatform> existingPlatforms = userGamePlatformRepository.findAll().stream()
-                .filter(userGamePlatform -> userGamePlatform.getUserId().equals(userId) && userGamePlatform.getGameId().equals(gameId))
-                .collect(Collectors.toList());
+        List<UserGamePlatform> existingPlatforms = userGamePlatformRepository.findByUserIdAndGameId(userId, gameId);
 
         for (UserGamePlatform platform : existingPlatforms) {
             userGamePlatformRepository.delete(platform);
@@ -198,9 +173,7 @@ public class UserService {
     }
 
     public List<UserGame> getUserGamesByPlatform(Integer userId, Integer platformId) {
-        List<UserGamePlatform> platformEntries = userGamePlatformRepository.findAll().stream()
-                .filter(userGamePlatform -> userGamePlatform.getUserId().equals(userId) && userGamePlatform.getPlatformId().equals(platformId))
-                .collect(Collectors.toList());
+        List<UserGamePlatform> platformEntries = userGamePlatformRepository.findByUserIdAndPlatformId(userId, platformId);
 
         if (platformEntries.isEmpty()) {
             return new ArrayList<>();
@@ -208,13 +181,15 @@ public class UserService {
 
         List<UserGame> userGames = new ArrayList<>();
         for (UserGamePlatform platformEntry : platformEntries) {
-            List<UserGame> matchingUserGames = userGameRepository.findAll().stream()
-                    .filter(userGame -> userGame.getUserId().equals(userId) && userGame.getGameId().equals(platformEntry.getGameId()))
-                    .collect(Collectors.toList());
-
-            userGames.addAll(matchingUserGames);
+            Optional<UserGame> userGame = userGameRepository.findByUserIdAndGameId(userId, platformEntry.getGameId());
+            userGame.ifPresent(userGames::add);
         }
+
         return userGames;
+    }
+
+    public List<UserGamePlatform> getUserGamePlatforms(Integer userId, Integer gameId) {
+        return userGamePlatformRepository.findByUserIdAndGameId(userId, gameId);
     }
 }
 
