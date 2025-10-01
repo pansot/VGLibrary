@@ -119,4 +119,9 @@ public class UserController {
     public List<UserGame> getUserGamesByPlatform(@PathVariable Integer userId, @PathVariable Integer platformId) {
         return userService.getUserGamesByPlatform(userId, platformId);
     }
+
+    @GetMapping("/{userId}/games/{gameId}/platforms")
+    public List<UserGamePlatform> getUserGamePlatforms(@PathVariable Integer userId, @PathVariable Integer gameId) {
+        return userService.getUserGamePlatforms(userId, gameId);
+    }
 }

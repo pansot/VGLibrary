@@ -187,5 +187,9 @@ public class UserService {
 
         return userGames;
     }
+
+    public List<UserGamePlatform> getUserGamePlatforms(Integer userId, Integer gameId) {
+        return userGamePlatformRepository.findByUserIdAndGameId(userId, gameId);
+    }
 }
 
